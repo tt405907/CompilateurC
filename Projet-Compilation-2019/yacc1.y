@@ -6,39 +6,42 @@
 #include <string.h>
 #include <stdarg.h>
 
-struct treeNode{
-    struct treeNode *child[MAXCHILD];
-    char* nodeType;
-    char* string;
-    char* value;
+struct Arbre {
+    struct Arbre *enfant[100];
+    char* type_noeud;
+    char* nom_expr;
+    char* valeur;
     char* dataType;
     int lineNo;
-    int Nchildren;
+    int nbr_enfants;
 };
+// On garde lineNO ? Quel est son réel intérré ? à par peut être graphique sur 
+// l'affichage pour savoir quel résultat provient de quel ligne
 
-struct treeNode * newnode(int lineNo, char* nodeType, char* string, char* value, char* dataType, int Nchildren, ...){
-    struct treeNode * node = (struct treeNode*) malloc(sizeof(struct treeNode));
-    node->nodeType = nodeType;
-    node->string = string;
-    node->value = value;
-    node->dataType = dataType;
-    node->lineNo = lineNo;
-    node->Nchildren = Nchildren;
+struct Arbre * creation_noeud(int lineNo,char* type_noeud, char* nom_expr, char* valeur, char* dataType, int nbr_enfants, ...){
+    struct Arbre * noeud = (struct Arbre*) malloc(sizeof(struct Arbre));
+    noeud->type_noeud = type_noeud;
+    noeud->nom_expr = nom_expr;
+    noeud->valeur= valeur;
+    noeud->dataType = dataType;
+    noeud->lineNo = lineNo;
+    noeud->nbr_enfants = nbr_enfants;
     va_list ap;
     int i;
-    va_start(ap, Nchildren);
-    for (i=0;i<Nchildren;i++){
-        node->child[i]=va_arg(ap, struct treeNode *);
+    va_start(ap, nbr_enfants);
+    for (int i=0; i < nbr_enfants; i++)
+	{
+        noeud->enfant[i]=va_arg(ap, struct Arbre *);
     }
     va_end(ap);
-    return node;
+    return noeud;
 }
 
 %}
 
 %union {
     char* str;
-    struct treeNode * ast;
+    struct Arbre * ast;
 }
 
 %token IDENTIFICATEUR CONSTANTE VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
@@ -59,48 +62,59 @@ struct treeNode * newnode(int lineNo, char* nodeType, char* string, char* value,
 
 
 
-programme	:	
+programme :	
 		liste_declarations liste_fonctions
 ;
-liste_declarations	:	
+
+liste_declarations :	
 		liste_declarations declaration 
 	|	
 ;
-liste_fonctions	:	
+
+liste_fonctions :	
 		liste_fonctions fonction
 |               fonction
 ;
-declaration	:	
+
+declaration :	
 		type liste_declarateurs ';'
 ;
-liste_declarateurs	:	
+
+liste_declarateurs :	
 		liste_declarateurs ',' declarateur
 	|	declarateur
 ;
+
 declarateur	:	
 		IDENTIFICATEUR
 	|	declarateur '[' CONSTANTE ']'
 ;
-fonction	:	
+
+fonction :	
 		type IDENTIFICATEUR '(' liste_parms ')' '{' liste_declarations liste_instructions '}'
 	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';'
 ;
-type	:	
+
+type :	
 		VOID
 	|	INT
 ;
-liste_parms	:	
+
+liste_parms :	
 		liste_parms ',' parm
 	|	
 ;
-parm	:	
+
+parm :	
 		INT IDENTIFICATEUR
 ;
+
 liste_instructions :	
 		liste_instructions instruction
 	|
 ;
-instruction	:	
+
+instruction :	
 		iteration
 	|	selection
 	|	saut
@@ -108,36 +122,44 @@ instruction	:
 	|	bloc
 	|	appel
 ;
-iteration	:	
+
+iteration :	
 		FOR '(' affectation ';' condition ';' affectation ')' instruction
 	|	WHILE '(' condition ')' instruction
 ;
-selection	:	
+
+selection :	
 		IF '(' condition ')' instruction %prec THEN
 	|	IF '(' condition ')' instruction ELSE instruction
 	|	SWITCH '(' expression ')' instruction
 	|	CASE CONSTANTE ':' instruction
 	|	DEFAULT ':' instruction
 ;
-saut	:	
+
+saut :	
 		BREAK ';'
 	|	RETURN ';'
 	|	RETURN expression ';'
 ;
-affectation	:	
+
+affectation :	
 		variable '=' expression
 ;
-bloc	:	
+
+bloc :	
 		'{' liste_declarations liste_instructions '}'
 ;
-appel	:	
+
+appel :	
 		IDENTIFICATEUR '(' liste_expressions ')' ';'
 ;
-variable	:	
+
+variable :	
 		IDENTIFICATEUR
 	|	variable '[' expression ']'
 ;
-expression	:	
+
+expression :	
 		'(' expression ')'
 	|	expression binary_op expression %prec OP
 	|	MOINS expression
@@ -145,17 +167,20 @@ expression	:
 	|	variable
 	|	IDENTIFICATEUR '(' liste_expressions ')'
 ;
-liste_expressions	:	
+
+liste_expressions :	
 		liste_expressions ',' expression
 	|
 ;
-condition	:	
+
+condition :	
 		NOT '(' condition ')'
 	|	condition binary_rel condition %prec REL
 	|	'(' condition ')'
 	|	expression binary_comp expression
 ;
-binary_op	:	
+
+binary_op :	
 		PLUS 
 	|       MOINS
 	|	MUL
@@ -165,11 +190,13 @@ binary_op	:
 	|	BAND
 	|	BOR
 ;
-binary_rel	:	
+
+binary_rel :	
 		LAND
 	|	LOR
 ;
-binary_comp	:	
+
+binary_comp :	
 		LT
 	|	GT
 	|	GEQ
@@ -177,6 +204,7 @@ binary_comp	:
 	|	EQ
 	|	NEQ
 ;
+
 %%
 
 void main(int args,char** argv)
@@ -198,9 +226,9 @@ void main(int args,char** argv)
     		printf("no input file\n");
     		exit(1);
 	}
-		printf("<?xml version=\"1.0\"?>\n<root>\n");
+		//printf("<?xml version=\"1.0\"?>\n<root>\n");
 		yyparse();  
-		printf("</root>\n");
+		//printf("</root>\n");
 		return 0; 
 } 
 
