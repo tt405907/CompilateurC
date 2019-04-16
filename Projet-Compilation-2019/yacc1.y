@@ -5,7 +5,8 @@
 #include <string.h>
 #include <stdarg.h>
 //#include "yacc1.tab.h"
-%error-verbose
+
+
 void yyerror(const char *s)
 {
 	fflush(stdout);
@@ -46,7 +47,7 @@ struct Arbre {
 
 typedef struct list_f {
 	struct Arbre *val;
-	struct liste_f *next;
+	struct list_f *next;
 }list_f;
 
 struct list_f *listprogramme;
@@ -62,12 +63,6 @@ void freelist(struct list_f *list) {
 	freelist(list->next);
 	free(list);
 }
-void printlist(struct list_f *list) {
-	if (list == NULL) return;
-	printNode(list->val);
-	//printNode(list->next);
-}
-
 
 struct Arbre * creation_noeud(int lineNo,char* type_noeud, char* nom_expr, char* valeur, char* dataType, int nbr_enfants, ...){
     struct Arbre * noeud = (struct Arbre*) malloc(sizeof(struct Arbre));
@@ -109,12 +104,17 @@ void printNode(struct Arbre *node){
     printf("%s</Tree>\n", indent);
 }
 
+void printlist(struct list_f *list) {
+	if (list == NULL) return;
+	printNode(list->val);
+	printlist(list->next);
+}
 
 %}
 %union {
     char* str;
     struct Arbre *ast;
-	struct liste_f *list;
+	struct list_f *list;
 }
 %token IDENTIFICATEUR CONSTANTE VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
 %token BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
@@ -146,19 +146,19 @@ liste_fonctions :
 |               fonction {$$ = cons($1, NULL);}
 ;
 declaration :	
-		type liste_declarateurs ';' {$$=creation_noeud(yylineno , "declaration",none, none, none, $1, 1, $2); }
+		type liste_declarateurs ';' {$$=creation_noeud(yylineno , "declaration",none, none, none, 1, $2); }
 ;
 liste_declarateurs :	
 		liste_declarateurs ',' declarateur {$$=creation_noeud(yylineno, "liste_declarateurs" ,none, none, none,  2, $1, $3); }
 	|	declarateur {$$=$1;}
 ;
 declarateur	:	
-		IDENTIFICATEUR {$$ = creation_noeud(yylineno, "declarateur", $1, none, none, 0);}
+		IDENTIFICATEUR {$$ = creation_noeud(yylineno, "declarateur", none, none, none, 0);}
 	|	declarateur '[' CONSTANTE ']' {$$ = creation_noeud(yylineno, "declarateur_tab", none, none, none, 2,$1,$3);}
 ;
 fonction :	
-		type IDENTIFICATEUR '(' liste_parms ')' '{' liste_declarations liste_instructions '}' {$$=creation_noeud(yylineno,"fonction", $2, none, $1,  3,$4,$7,$8);}
-	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';' {$$=creation_noeud(yylineno,"ext_fonction", $3, none, $2,  1,$5);}
+		type IDENTIFICATEUR '(' liste_parms ')' '{' liste_declarations liste_instructions '}' {$$=creation_noeud(yylineno,"fonction", none, none, $1,  3,$4,$7,$8);}
+	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';' {$$=creation_noeud(yylineno,"ext_fonction", none, none, $2,  1,$5);}
 ;
 type :	
 		VOID {$$="VOID";}
@@ -166,22 +166,22 @@ type :
 ;
 liste_parms :	
 		liste_parms ',' parm {$$ = creation_noeud(yylineno,"liste_parms", none, none, "integer",  2, $1,$3);}
-	|	parm {$$ =$1;}
+	|	parm {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 parm :	
-		INT IDENTIFICATEUR {$$ = creation_noeud(yylineno,"parm", $2, none, "INT",  0);}
+		INT IDENTIFICATEUR {$$ = creation_noeud(yylineno,"parm", none, none, "INT",  0);}
 ;
 liste_instructions :	
 		liste_instructions instruction {$$ = creation_noeud(yylineno,"liste_instructions", none, none, integer,  2, $1,$2);}
-	|   instruction {$$=$1;}
+	|   instruction {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 instruction :	
-		iteration {$$=$1;}
-	|	selection {$$=$1;}
-	|	saut {$$=$1;}
-	|	affectation ';' {$$=$1;}
-	|	bloc {$$=$1;}
-	|	appel {$$=$1;}
+		iteration {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	selection {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	saut {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	affectation ';' {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	bloc {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	appel {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 iteration :	
 		FOR '(' affectation ';' condition ';' affectation ')' instruction {$$ =creation_noeud(yylineno,"FOR", none, none, "INT",  4, $3,$5,$7,$9);}
@@ -191,7 +191,7 @@ selection :
 		IF '(' condition ')' instruction %prec THEN {$$ =creation_noeud(yylineno,"IF", none, none,none,  2, $3,$5);}
 	|	IF '(' condition ')' instruction ELSE instruction {$$ =creation_noeud(yylineno,"IF_ELSE", none, none, none,  3, $3,$5,$7);}
 	|	SWITCH '(' expression ')' instruction {$$ =creation_noeud(yylineno,"SWITCH", none, none, none,  2, $3,$5);}
-	|	CASE CONSTANTE ':' instruction {$$ =creation_noeud(yylineno,"CASE", CONSTANTE, none, none,  1, $4);}
+	|	CASE CONSTANTE ':' instruction {$$ =creation_noeud(yylineno,"CASE", "CONSTANTE", none, none,  1, $4);}
 	|	DEFAULT ':' instruction {$$ =creation_noeud(yylineno,"DEFAULT", none, none, none,  1, $3);}
 ;
 saut :	
@@ -206,23 +206,23 @@ bloc :
 		'{' liste_declarations liste_instructions '}' {$$ =creation_noeud(yylineno,"bloc", none, none,none,  2,$2 ,$3);}
 ;
 appel :	
-		IDENTIFICATEUR '(' liste_expressions ')' ';'  {$$ =creation_noeud(yylineno,"appel", $1, none,none,  1,$3);}
+		IDENTIFICATEUR '(' liste_expressions ')' ';'  {$$ =creation_noeud(yylineno,"appel", none, none,none,  1,$3);}
 ;
 variable :	
-		IDENTIFICATEUR {$$ =creation_noeud(yylineno,"variable", $1, none,none,  0);}
+		IDENTIFICATEUR {$$ =creation_noeud(yylineno,"variable", none, none,none,  0);}
 	|	variable '[' expression ']' {$$ =creation_noeud(yylineno,"variable_exp", none, none,none,  2,$1,$3);}
 ;
 expression :	
 		'(' expression ')'  {$$ =creation_noeud(yylineno,"expression", none, none,none,  1,$2);}
 	|	expression binary_op expression %prec OP 
 	|	MOINS expression {$$ =creation_noeud(yylineno,"exp_moins_expression", none, none,none,  1,$1,$2);}
-	|	CONSTANTE {$$ =creation_noeud(yylineno,"exp_CONSTANTE", $1, none,none,  0);}
+	|	CONSTANTE {$$ =creation_noeud(yylineno,"exp_CONSTANTE", none, none,none,  0);}
 	|	variable  {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
-	|	IDENTIFICATEUR '(' liste_expressions ')' {$$ =creation_noeud(yylineno,"exp_IDENTIFICATEUR", $1, none,none,  1,$3);}
+	|	IDENTIFICATEUR '(' liste_expressions ')' {$$ =creation_noeud(yylineno,"exp_IDENTIFICATEUR", none, none,none,  1,$3);}
 ;
 liste_expressions :	
 		liste_expressions ',' expression {$$ =creation_noeud(yylineno,"liste_expressions", none, none,none,  2,$1,$3);}
-	|   expression {$$=$1;}
+	|   expression {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 condition :	
 		NOT '(' condition ')' { $$ =creation_noeud(yylineno,"NOT", none, none,none,  1,$3);}
@@ -231,28 +231,28 @@ condition :
 	|	expression binary_comp expression  { $$ =creation_noeud(yylineno,"condition_comp", none, none,none,  3,$1,$2,$3);}
 ;
 binary_op :	
-		PLUS {$$="+";}
-	|       MOINS {$$="-";}
-	|	MUL {$$="*";}
-	|	DIV {$$="/";}
-	|       LSHIFT {$$="<<";}
-	|       RSHIFT {$$=">>";}
-	|	BAND {$$="&";}
-	|	BOR {$$="|=";}
+		PLUS {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|       MOINS {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	MUL {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	DIV {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|       LSHIFT {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|       RSHIFT {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	BAND {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	BOR {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 binary_rel :	
-		LAND {$$="&&";}
-	|	LOR {$$="||";}
+		LAND {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	LOR {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 ;
 ;
 binary_comp :	
-		LT {$$=$1;}
-	|	GT {$$=$1;}
-	|	GEQ {$$=$1;}
-	|	LEQ {$$=$1;}
-	|	EQ {$$=$1;}
-	|	NEQ {$$=$1;}
+		LT {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	GT {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	GEQ {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	LEQ {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	EQ {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+	|	NEQ {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
 ;
 %%
 void main(int args,char** argv)
