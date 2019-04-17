@@ -15,6 +15,7 @@ int yyerror(char* s) {
 int yylex();
 FILE *yyin;
 FILE *yyout;
+FILE *outfile;
 int yylineno;
 char* integer="INT";
 char* none = "none";
@@ -113,7 +114,7 @@ void printNode(struct Arbre *node){
 void printnodeDOT(struct Arbre* node) {
 	if (node == NULL){return;}
 	else{
-	if (node->name != 0){ printf("%d %s\n", node->name, node->type_noeud);}
+	if (node->name != 0){ printf("%d %s\n", node->name, node->type_noeud); fprintf(outfile,"%d %s\n", node->name, node->type_noeud);}
 	if (node->nbr_enfants > 0){
 	int i;
 	for (i=0;i<node->nbr_enfants;i++) {
@@ -121,7 +122,7 @@ void printnodeDOT(struct Arbre* node) {
 		if(fils != NULL){
 		printnodeDOT(fils);
 		if(fils->name != 0 && node->name != 0){
-		printf("%d -> %d \n", node->name, fils->name);}}
+		printf("%d -> %d \n", node->name, fils->name);fprintf(outfile,"%d -> %d \n", node->name, fils->name);}}
 	}}}
 }
 
@@ -205,7 +206,7 @@ parm :
 		INT IDENTIFICATEUR {$$ = creation_noeud(yylineno,"parm", none, none, "INT",  0);}
 ;
 liste_instructions :	
-		liste_instructions instruction {$$ = creation_noeud(yylineno,"liste_instructions", none, none, "intermediate node",  2, $1,$2);}
+		liste_instructions instruction {int nb = $2->nbr_enfants;$2->nbr_enfants= $2->nbr_enfants+1 ;$2->enfant[nb] = $1;$$=$2;}
 	|   { $$ = NULL; }
 ;
 instruction :	
@@ -233,7 +234,7 @@ saut :
 	|	RETURN expression ';' {$$ =creation_noeud(yylineno,"[label=\"RETURN\" shape=trapezium color=blue]", none, none,none,  1, $2);$$->name = nextname();}
 ;
 affectation :	
-		variable '=' expression {$$ =creation_noeud(yylineno,"affectation", $1->nom_expr, none,none,  1 ,$3);}
+		variable '=' expression {$$ =creation_noeud(yylineno,"[label=\":=\"]", $1->nom_expr, none,none,  2,$1 ,$3);$$->name =nextname();}
 ;
 bloc :	
 		'{' liste_declarations liste_instructions '}' {$$ =creation_noeud(yylineno,"[label=\"BLOC\"]", none, none,none,  1 ,$3);$$->name = nextname();}
@@ -256,8 +257,9 @@ expression :
 	|	IDENTIFICATEUR '(' liste_expressions ')' {$$ =creation_noeud(yylineno,"exp_IDENTIFICATEUR", none, none,none,  1,$3);$$->name = nextname();}
 ;
 liste_expressions :	
-		liste_expressions ',' expression {$$ =creation_noeud(yylineno,"liste_expressions", none, none,none,  2,$1,$3);}
-	|   expression {$$ =creation_noeud(yylineno,"exp_variable", none, none,none,  1,$1);}
+		liste_expressions ',' expression {int nb = $3->nbr_enfants;$3->nbr_enfants= $3->nbr_enfants+1 ;$3->enfant[nb] = $1;$$=$3; }
+	|   expression {$$ = $1;}
+	|  { $$ = NULL; }
 ;
 condition :	
 		NOT '(' condition ')' { $$ =creation_noeud(yylineno,"NOT", none, none,none,  1,$3);$$->name = nextname();}
@@ -266,7 +268,7 @@ condition :
 	|	expression binary_comp expression  { $$ =creation_noeud(yylineno,"condition_comp", none, none,none,  3,$1,$2,$3);}
 ;
 binary_op :	
-		PLUS {$$ =creation_noeud(yylineno,"[label= \"+\"]", "+", none,none,  0);$$->name = nextname();}
+		PLUS {$$ = creation_noeud(yylineno,"[label= \"+\"]", "+", none,none,  0); $$->name = nextname();}
 	|       MOINS {$$ =creation_noeud(yylineno,"[label= \"-\"]", "-", none,none,  0);$$->name = nextname();}
 	|	MUL {$$ =creation_noeud(yylineno,"[label= \"*\"]", "*", none,none,  0);$$->name = nextname();}
 	|	DIV {$$ =creation_noeud(yylineno,"[label= \"/\"]", "/", none,none,  0);$$->name = nextname();}
@@ -321,8 +323,17 @@ void main(int args,char** argv)
 		int res = yyparse();  
 		if (res != 0) exit(1);
 		printlist(listprogramme);
-		printlistDOT(listprogramme);
 
+		outfile = fopen("file.dot", "w");
+		if (outfile == NULL)
+			{
+				printf("Error opening file!\n");
+				exit(1);
+			}
+		fprintf(outfile,"digraph G { \n");
+		printlistDOT(listprogramme);
+		fprintf(outfile,"}");
+		close(outfile);
 } 
 
 
