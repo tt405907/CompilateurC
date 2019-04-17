@@ -6,7 +6,7 @@
 #include <stdarg.h>
 //#include "yacc1.tab.h"
 
-
+extern int nextname();
 int yyerror(char* s) {
 	fprintf(stderr, "%s\n", s);
 }
@@ -17,7 +17,6 @@ FILE *yyin;
 FILE *yyout;
 int yylineno;
 char* integer="INT";
-char* floating="float";
 char* none = "none";
 char* assign = "=";
 
@@ -87,13 +86,13 @@ struct Arbre * creation_noeud(int lineNo,char* type_noeud, char* nom_expr, char*
 void printNode(struct Arbre *node){
 	if(node == NULL){printf("NULL... \n");}
 	else{
-    printf("%s<Tree lineNo=\"%d\" nodeType=\"%s\" string=\"%s\" value=\"%s\" dataType=\"%s\">\n", 
+    printf("%s<Tree lineNo=\"%d\" nodeType=\"%s\" string=\"%s\" value=\"%s\" dataType=\"%s\" name= %d>\n", 
         indent,
         node->lineNo,
         node->type_noeud,
         node->nom_expr,
         node->valeur, 
-        node->dataType);
+        node->dataType,node->name);
     int i;
     if (node->nbr_enfants > 0){
         printf("%s< %d Child>\n", indent,node->nbr_enfants);
@@ -109,15 +108,21 @@ void printNode(struct Arbre *node){
 
 
 
+
+
 void printnodeDOT(struct Arbre* node) {
-	if (node == NULL) return;
+	if (node == NULL){return;}
+	else{
 	if (node->name != 0){ printf("%d %s\n", node->name, node->type_noeud);}
-	
-	for (int i=0;i<node->nbr_enfants;i++) {
-		printnodeDOT(node->enfant[i]);
-		if(node->enfant[i]->name != 0) printf("%d -> %d\n", node->name, node->enfant[i]->name);
-		printf("%d -> %d\n", node->name, node->enfant[i]->name);
-	}
+	if (node->nbr_enfants > 0){
+	int i;
+	for (i=0;i<node->nbr_enfants;i++) {
+		struct Arbre* fils = node->enfant[i];
+		if(fils != NULL){
+		printnodeDOT(fils);
+		if(fils->name != 0 && node->name != 0){
+		printf("%d -> %d \n", node->name, fils->name);}}
+	}}}
 }
 
 void printlistDOT(struct list_f *list) {
@@ -181,8 +186,10 @@ declarateur	:
 	|	declarateur '[' CONSTANTE ']' {$$ = creation_noeud(yylineno, "declarateur_tab", none, none, none, 2,$1,$3);}
 ;
 fonction :	
-		type IDENTIFICATEUR '(' liste_parms ')' '{' liste_declarations liste_instructions '}' {
-								$$=creation_noeud(yylineno,"[label=lala shape=invtrapezium color=blue]", $2, none, $1,  3,$4,$7,$8);$$->name = nextname();}
+		type IDENTIFICATEUR '(' liste_parms ')' bloc {
+			char* buffer = NULL;
+asprintf(&buffer, "[label=\"%s, %s\" shape=invtrapezium color=blue]", $2, $1);
+								$$=creation_noeud(yylineno,buffer, $2, none, $1,  1,$6);$$->name = nextname();}
 	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';' {$$ = NULL; }
 ;
 type :	
@@ -229,20 +236,22 @@ affectation :
 		variable '=' expression {$$ =creation_noeud(yylineno,"affectation", $1->nom_expr, none,none,  1 ,$3);}
 ;
 bloc :	
-		'{' liste_declarations liste_instructions '}' {$$ =creation_noeud(yylineno,"bloc", none, none,none,  2,$2 ,$3);$$->name = nextname();}
+		'{' liste_declarations liste_instructions '}' {$$ =creation_noeud(yylineno,"[label=\"BLOC\"]", none, none,none,  1 ,$3);$$->name = nextname();}
 ;
 appel :	
-		IDENTIFICATEUR '(' liste_expressions ')' ';'  {$$ =creation_noeud(yylineno,"appel", none, none,none,  1,$3);$$->name = nextname();}
+		IDENTIFICATEUR '(' liste_expressions ')' ';'  {char* buffer = NULL;
+asprintf(&buffer, "[label=\"%s\" shape=septagon]", $1);$$ =creation_noeud(yylineno,buffer, none, none,none,  1,$3);$$->name = nextname();}
 ;
 variable :	
-		IDENTIFICATEUR {$$ =creation_noeud(yylineno,"variable", $1, none,"var",  0);$$->name = nextname();}
+		IDENTIFICATEUR {char* buffer = NULL;
+asprintf(&buffer, "[label=\"%s\"]", $1);$$ =creation_noeud(yylineno,buffer, $1, none,"var",  0);$$->name = nextname();}
 	|	variable '[' expression ']' {$$ =creation_noeud(yylineno,"variable_exp", none, none,none,  2,$1,$3);$$->name = nextname();}
 ;
 expression :	
 		'(' expression ')'  {$$ =creation_noeud(yylineno,"expression", none, none,none,  1,$2);$$->name = nextname();}
-	|	expression binary_op expression %prec OP {$$ = creation_noeud(yylineno,"operation",none,none,none,3,$1,$2,$3);$$->name = nextname(); }
+	|	expression binary_op expression %prec OP {$$ = creation_noeud(yylineno,"operation",none,none,none,3,$1,$2,$3);}
 	|	MOINS expression {$$ =creation_noeud(yylineno,"exp_moins_expression", none, none,none,  1,$1,$2);$$->name = nextname();}
-	|	CONSTANTE {char* b = NULL;asprintf(&b, "%s", $1);  $$ =creation_noeud(yylineno,"exp_CONSTANTE",none,b,none,  0);$$->name = nextname();}
+	|	CONSTANTE {char* b = NULL;asprintf(&b, "[label=\"%s\"]", $1);  $$ =creation_noeud(yylineno,b,none,b,none,  0);$$->name = nextname();}
 	|	variable  {$$ = $1;}
 	|	IDENTIFICATEUR '(' liste_expressions ')' {$$ =creation_noeud(yylineno,"exp_IDENTIFICATEUR", none, none,none,  1,$3);$$->name = nextname();}
 ;
