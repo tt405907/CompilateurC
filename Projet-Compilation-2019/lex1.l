@@ -2,10 +2,12 @@ D                       [0-9]
 L                       [a-zA-Z_]
 H                       [a-fA-F0-9]
 C                       "/*"((\*+[^/*])|([^*]))*\**"*/"
-%option noyywrap
+
+%option yylineno
 %{
 #include <stdio.h>
 #include "yacc1.tab.h"
+
 
 /* Ne g�re pas les commentaires. A rajouter */
 /* Supprimer les lignes dont vous n'avez pas besoin. */
@@ -26,9 +28,9 @@ C                       "/*"((\*+[^/*])|([^*]))*\**"*/"
 "void"                  { return VOID; }
 "while"                 { return WHILE; }
 
-{L}({L}|{D})*           { return IDENTIFICATEUR; }
+{L}({L}|{D})*           { yylval.str = strdup(yytext); return IDENTIFICATEUR;  }
 
-{D}+    { return CONSTANTE; }
+{D}+    { yylval.str = strdup(yytext); return CONSTANTE;  }
 
 
 {C} { }
