@@ -1,10 +1,9 @@
-extern int printd( int i );
+/* TEST TABLEAUX MULTIDIMENSIONNELS MINIC */
+
+int tab[3][4][5];
 
 int main() {
-   int i;
-   for (i=0; i<10; i=i+1) {
-	if (i==5) break;
-   }
-   printd(i);
-   return i ;
+  tab[1][2][3] = tab[0][1][2];
 }
+
+
