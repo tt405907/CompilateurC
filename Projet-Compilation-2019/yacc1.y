@@ -20,6 +20,9 @@ char* none = "none";
 char* assign = "=";
 char* tab="   ";
 char indent[100]="";
+
+
+
 void incIndent(){
     strcat(indent, tab);
 }
@@ -28,7 +31,7 @@ void decIndent(){
     indent[len-2]='\0';
 }
 struct Arbre {
-    struct Arbre *enfant[100];
+    struct Arbre *enfant[10000];
 	int name;
     char* type_noeud;
     char* nom_expr;
@@ -266,6 +269,7 @@ variable :
 											
 										}
 										$1->nbr_enfants=0;
+										nb = $$->nbr_enfants;$$->nbr_enfants= $$->nbr_enfants+1 ;$$->enfant[nb] =$3;
 										}
 ;
 variable_tab :
