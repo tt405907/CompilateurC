@@ -20,9 +20,6 @@ char* none = "none";
 char* assign = "=";
 char* tab="   ";
 char indent[100]="";
-
-
-
 void incIndent(){
     strcat(indent, tab);
 }
@@ -124,7 +121,6 @@ void printnodeDOT(struct Arbre* node,int parentName) {
 			fprintf(outfile,"%d -> %d \n",  parentName,fils->name);
 		}
 	}}}}
-
 void printlistDOT(struct list_f *list) {
 	if (list == NULL) return;
 	printnodeDOT(list->val,0);
@@ -145,7 +141,9 @@ void printlist(struct list_f *list) {
 %token IDENTIFICATEUR CONSTANTE VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT 
 %token BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
 %token GEQ LEQ EQ NEQ NOT EXTERN
+%right '='
 %left PLUS MOINS
+%left '(' ')'
 %left MUL DIV
 %left LSHIFT RSHIFT
 %left BOR BAND
@@ -200,11 +198,9 @@ liste_parms :
 parm :	
 		INT IDENTIFICATEUR {$$ = creation_noeud(yylineno,"parm", none, none, "INT",  0);}
 ;
-
 liste_instructions :	
 		liste_instructions instruction {int nb = $1->nbr_enfants;$1->nbr_enfants= $1->nbr_enfants+1 ;$1->enfant[nb] = $2;$$=$1;}
 	|   instruction { $$ =creation_noeud(yylineno,"listes interne", none, none, none,  1,$1);}
-
 ;
 instruction :	
 		iteration {$$ =$1;}
@@ -236,9 +232,7 @@ selection_switch	:
 			struct Arbre *tree  = creation_noeud(yylineno,"[label=\"DEFAULT\"]", none, none, none,  1, $4);tree->name = nextname();
 			int nb = $$->nbr_enfants;$$->nbr_enfants= $$->nbr_enfants+1 ;$$->enfant[nb] =tree;}
 	|  			{ $$ =creation_noeud(yylineno,"listes interne", none, none, none,  0); }
-
 ;
-
 saut :	
 		BREAK ';' {$$ =creation_noeud(yylineno,"[label=\"BREAK\" shape=box]", "break", none,none,  0);$$->name = nextname();}
 	|	RETURN ';'  {$$ =creation_noeud(yylineno,"[label=\"RETURN\" shape=trapezium color=blue]" , "return", none,none,  0);$$->name = nextname();}
@@ -280,18 +274,32 @@ variable_tab :
 	|	variable_tab '[' expression ']' {
 										int nb = $$->nbr_enfants;$$->nbr_enfants= $$->nbr_enfants+1 ;$$->enfant[nb] =$3;$$=$1;}
 ;
-
-
-
-
 expression :	
 		'(' expression ')'  {$$ = $2;}
-	|	expression binary_op expression %prec OP {int nb = $2->nbr_enfants;
-											$2->nbr_enfants= $2->nbr_enfants+2 ;
-											$2->enfant[nb] = $1;
-											$2->enfant[nb+1] = $3;
-											$$=$2; 
-											}
+	| expression PLUS expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"+\"]", "+", none, none,2 );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                           
+	| expression MOINS expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"-\"]", "-", none, none,2 );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
+	| expression MUL expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"*\"]", "*", none, none,2  );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
+	| expression DIV expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"/\"]", "/", none, none,2  );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
+	| expression LSHIFT expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"<<\"]", "<<", none, none,2  );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
+	| expression RSHIFT expression  {
+                                           $$= creation_noeud(yylineno,"[label= \">>\"]", ">>", none, none,2  );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
+	| expression BAND expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"&\"]", "&", none, none,2  );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
+	| expression BOR expression  {
+                                           $$= creation_noeud(yylineno,"[label= \"|\"]", "|", none, none, 2 );$$->name = nextname();$$->enfant[0] = $1;$$->enfant[1] = $3;}
+                                            
 	|	MOINS expression {$$ =creation_noeud(yylineno,"[label= \"-\"]", none, none,none,  1,$2);$$->name = nextname();}
 	|	CONSTANTE {char* b = NULL;asprintf(&b, "[label=\"%s\"]", $1);  $$ =creation_noeud(yylineno,b,none,b,none,  0);$$->name = nextname();}
 	|	variable  {$$ = $1;}
@@ -315,15 +323,15 @@ condition :
 											$$=$2; 
 											}
 ;
-binary_op :	
-		PLUS {$$ = creation_noeud(yylineno,"[label= \"+\"]", "+", none,none,  0); $$->name = nextname();}
-	|   MOINS {$$ =creation_noeud(yylineno,"[label= \"-\"]", "-", none,none,  0);$$->name = nextname();}
-	|	MUL {$$ =creation_noeud(yylineno,"[label= \"*\"]", "*", none,none,  0);$$->name = nextname();}
-	|	DIV {$$ =creation_noeud(yylineno,"[label= \"/\"]", "/", none,none,  0);$$->name = nextname();}
-	|   LSHIFT {$$ =creation_noeud(yylineno,"[label= \"<<\"]", "<<", none,none,  0);$$->name = nextname();}
-	|   RSHIFT {$$ =creation_noeud(yylineno,"[label= \">>\"]", ">>", none,none,  0);$$->name = nextname();}
-	|	BAND {$$ =creation_noeud(yylineno,"[label= \"&\"]", "&", none,none,  0);$$->name = nextname();}
-	|	BOR {$$ =creation_noeud(yylineno,"[label= \"|\"]", "|", none,none,  0);$$->name = nextname();}
+binary_op :    
+        PLUS {$$ = creation_noeud(yylineno,"[label= \"+\"]", "+", none,none,  0); $$->name = nextname();}
+    |   MOINS {$$ =creation_noeud(yylineno,"[label= \"-\"]", "-", none,none,  0);$$->name = nextname();}
+    |    MUL {$$ =creation_noeud(yylineno,"[label= \"*\"]", "*", none,none,  0);$$->name = nextname();}
+    |    DIV {$$ =creation_noeud(yylineno,"[label= \"/\"]", "/", none,none,  0);$$->name = nextname();}
+    |   LSHIFT {$$ =creation_noeud(yylineno,"[label= \"<<\"]", "<<", none,none,  0);$$->name = nextname();}
+    |   RSHIFT {$$ =creation_noeud(yylineno,"[label= \">>\"]", ">>", none,none,  0);$$->name = nextname();}
+    |    BAND {$$ =creation_noeud(yylineno,"[label= \"&\"]", "&", none,none,  0);$$->name = nextname();}
+    |    BOR {$$ =creation_noeud(yylineno,"[label= \"|\"]", "|", none,none,  0);$$->name = nextname();}
 ;
 binary_rel :	
 		LAND {$$ =creation_noeud(yylineno,"[label= \"&&\"]", "&&", none,none, 0);$$->name = nextname();}
