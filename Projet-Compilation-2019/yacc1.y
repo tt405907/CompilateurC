@@ -127,11 +127,7 @@ void printlistDOT(struct list_f *list) {
 	printnodeDOT(list->val,0);
 	printlistDOT(list->next);
 }
-void printlist(struct list_f *list) {
-	if (list == NULL) return;
-	printNode(list->val);
-	printlist(list->next);
-}
+
 %}
 %error-verbose;
 %union {
