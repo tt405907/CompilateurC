@@ -6,6 +6,7 @@ C                       "/*"((\*+[^/*])|([^*]))*\**"*/"
 %option yylineno
 %{
 #include <stdio.h>
+#include <string.h>
 #include "yacc1.tab.h"
 
 
@@ -13,6 +14,7 @@ C                       "/*"((\*+[^/*])|([^*]))*\**"*/"
 /* Supprimer les lignes dont vous n'avez pas besoin. */
 
 %}
+
 
 %%
 "break"                 { return BREAK; }

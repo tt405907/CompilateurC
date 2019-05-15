@@ -1,4 +1,5 @@
 %{
+#define _GNU_SOURCE
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,7 +153,7 @@ void printlist(struct list_f *list) {
 %nonassoc ELSE
 %left OP
 %left REL
-%type<ast> variable_tab selection_switch  liste_declarations GEQ LEQ EQ NEQ NOT EXTERN BREAK RETURN PLUS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT  MOINS CONSTANTE declaration fonction liste_declarateurs declarateur liste_parms parm liste_instructions instruction iteration selection saut affectation bloc appel variable condition expression liste_expressions binary_rel binary_comp binary_op
+%type<ast> variable_tab selection_switch  liste_declarations GEQ LEQ EQ NEQ NOT EXTERN BREAK RETURN PLUS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT  MOINS CONSTANTE declaration fonction liste_declarateurs declarateur liste_parms parm liste_instructions instruction iteration selection saut affectation bloc appel variable condition expression liste_expressions binary_rel binary_comp
 %type<str> type IDENTIFICATEUR
 %type<list> liste_fonctions
 %start programme
@@ -267,7 +268,7 @@ variable :
 										}
 ;
 variable_tab :
-	|	IDENTIFICATEUR {char* buffer = NULL;
+		IDENTIFICATEUR {char* buffer = NULL;
 						asprintf(&buffer, "[label=\"%s\"]", $1);
 						$$ =creation_noeud(yylineno,buffer, $1, none,"var",  0);
 						$$->name = nextname();}
@@ -323,16 +324,7 @@ condition :
 											$$=$2; 
 											}
 ;
-binary_op :    
-        PLUS {$$ = creation_noeud(yylineno,"[label= \"+\"]", "+", none,none,  0); $$->name = nextname();}
-    |   MOINS {$$ =creation_noeud(yylineno,"[label= \"-\"]", "-", none,none,  0);$$->name = nextname();}
-    |    MUL {$$ =creation_noeud(yylineno,"[label= \"*\"]", "*", none,none,  0);$$->name = nextname();}
-    |    DIV {$$ =creation_noeud(yylineno,"[label= \"/\"]", "/", none,none,  0);$$->name = nextname();}
-    |   LSHIFT {$$ =creation_noeud(yylineno,"[label= \"<<\"]", "<<", none,none,  0);$$->name = nextname();}
-    |   RSHIFT {$$ =creation_noeud(yylineno,"[label= \">>\"]", ">>", none,none,  0);$$->name = nextname();}
-    |    BAND {$$ =creation_noeud(yylineno,"[label= \"&\"]", "&", none,none,  0);$$->name = nextname();}
-    |    BOR {$$ =creation_noeud(yylineno,"[label= \"|\"]", "|", none,none,  0);$$->name = nextname();}
-;
+
 binary_rel :	
 		LAND {$$ =creation_noeud(yylineno,"[label= \"&&\"]", "&&", none,none, 0);$$->name = nextname();}
 	|	LOR {$$ =creation_noeud(yylineno,"[label= \"||\"]", "||", none,none, 0);$$->name = nextname();}
